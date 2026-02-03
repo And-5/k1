@@ -1,4 +1,5 @@
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from .models import Client
 from .serializers import ClientSerializer
@@ -10,5 +11,12 @@ def client_list(request):
     status = request.query_params.get('status')
     if status:
         clients = clients.filter(status=status)
-    serializer = ClientSerializer(clients, many=True)
-    return Response(serializer.data)
+    paginator = PageNumberPagination()
+    if 'page_size' in request.query_params:
+        try:
+            paginator.page_size = int(request.query_params['page_size'])
+        except (TypeError, ValueError):
+            pass
+    page = paginator.paginate_queryset(clients, request)
+    serializer = ClientSerializer(page, many=True)
+    return paginator.get_paginated_response(serializer.data)
